@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.min.js"></script>
+    <title>Master Snippet Extractor & Exporter</title>
+</head>
+<body class="bg-slate-900 text-slate-200 p-4 md:p-10 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <header>
+            <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master <span class="text-blue-500">Exporter</span></h1>
+            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Extract and download your links as an Excel report</p>
+        </header>
+
+        <div id="inputContainer" class="space-y-6">
+            <div class="snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4">
+                <div class="flex items-center gap-4">
+                    <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">01</span>
+                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Snippet Name (e.g., Email Header)">
+                </div>
+                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs" placeholder="Paste HTML/Jinja code here..."></textarea>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 sticky bottom-6 z-50 bg-slate-900/80 backdrop-blur p-4 rounded-2xl border border-slate-800 shadow-2xl">
+            <button onclick="addSnippet()" id="addBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-2 border border-slate-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+                <span>Add Snippet</span>
+            </button>
+            <button onclick="processAll()" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-12 rounded-xl shadow-lg transition-all active:scale-95 text-lg uppercase flex-1">
+                Process & Generate
+            </button>
+        </div>
+
+        <div id="resultsContainer" class="space-y-12"></div>
+
+        <div id="exportSection" class="hidden pb-20">
+            <div class="bg-emerald-900/20 border border-emerald-500/30 p-8 rounded-3xl text-center space-y-4">
+                <h3 class="text-emerald-400 font-bold text-xl">All Snippets Processed Successfully!</h3>
+                <p class="text-slate-400 text-sm">Download the consolidated data as an Excel file (.xlsx)</p>
+                <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-16 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-3 mx-auto">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM10 16h4v-2h-4v2z"/></svg>
+                    <span>Download Excel Sheet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let snippetCount = 1;
+        let allExtractedData = [];
+
+        function addSnippet() {
+            if (snippetCount >= 25) return;
+            snippetCount++;
+            const container = document.getElementById('inputContainer');
+            const div = document.createElement('div');
+            div.className = "snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4 relative";
+            div.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-slate-500 hover:text-red-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <div class="flex items-center gap-4">
+                    <span class="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded">${snippetCount.toString().padStart(2, '0')}</span>
+                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Snippet Name">
+                </div>
+                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs"></textarea>
+            `;
+            container.appendChild(div);
+        }
+
+        async function copyText(text, btn) {
+            try { await navigator.clipboard.writeText(text); } catch (err) {}
+        }
+
+        function processAll() {
+            const groups = document.querySelectorAll('.snippet-group');
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+            allExtractedData = []; 
+
+            groups.forEach((group, index) => {
+                const name = group.querySelector('.snippet-name').value || `Snippet ${index + 1}`;
+                const code = group.querySelector('.snippet-code').value;
+                if (!code.trim()) return;
+
+                const aRegex = /<a\s+[^>]*href=["']([^"']*)["']/gi;
+                const allRegex = /href=["']([^"']*)["']/gi;
+                const blockRegex = /{{block\(["'][^"']*["']\)}}/gi;
+
+                const extract = (regex, type, isCapture = true) => {
+                    const matches = [...new Set(Array.from(code.matchAll(regex), m => (isCapture ? m[1] : m[0]).trim()))];
+                    matches.forEach(m => allExtractedData.push({ "Snippet Name": name, "Type": type, "Content": m }));
+                    return matches;
+                };
+
+                const aLinks = extract(aRegex, "Anchor Tag");
+                const allHrefs = extract(allRegex, "All href Attribute");
+                const blocks = extract(blockRegex, "Jinja Block", false);
+
+                resultsContainer.innerHTML += `
+                    <div class="space-y-4">
+                        <h2 class="text-xl font-bold text-white border-l-4 border-blue-500 pl-4">${name}</h2>
+                        <div class="grid lg:grid-cols-3 gap-4">
+                            ${renderList(aLinks, 'Anchor Links', 'text-blue-400')}
+                            ${renderList(allHrefs, 'All hrefs', 'text-emerald-400')}
+                            ${renderList(blocks, 'Jinja Blocks', 'text-purple-400')}
+                        </div>
+                    </div>`;
+            });
+
+            if (allExtractedData.length > 0) {
+                document.getElementById('exportSection').classList.remove('hidden');
+                document.getElementById('exportSection').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function renderList(items, title, color) {
+            return `
+                <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50">
+                    <h3 class="${color} text-[10px] font-black uppercase mb-3 flex justify-between">${title} <span>${items.length}</span></h3>
+                    <ul class="space-y-2 max-h-48 overflow-y-auto pr-1 text-[10px]">
+                        ${items.length ? items.map(i => `<li class="bg-slate-900/50 p-2 rounded truncate border border-slate-700/50 font-mono text-slate-400" title="${i}">${i}</li>`).join('') : '<li class="text-slate-600 italic">None</li>'}
+                    </ul>
+                </div>`;
+        }
+
+        function downloadExcel() {
+            if (allExtractedData.length === 0) return;
+            const worksheet = XLSX.utils.json_to_sheet(allExtractedData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Extracted Links");
+            
+            // Auto-width columns
+            const max_width = allExtractedData.reduce((w, r) => Math.max(w, r.Content.length), 10);
+            worksheet["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: max_width }];
+
+            XLSX.writeFile(workbook, `Snippet_Export_${new Date().getTime()}.xlsx`);
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</body>
+</html>

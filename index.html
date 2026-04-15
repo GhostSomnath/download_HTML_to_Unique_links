@@ -11,152 +11,184 @@
     <div class="max-w-7xl mx-auto space-y-8">
         <header>
             <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master <span class="text-blue-500">Exporter</span></h1>
-            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Fixed Excel Engine | Handles Complex Jinja Links</p>
+            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Advanced Parser | Jinja Space & Quote Protection</p>
         </header>
 
         <div id="inputContainer" class="space-y-6">
             <div class="snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div class="flex items-center gap-4">
                     <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">01</span>
-                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Snippet Name (e.g., Header Section)">
+                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Snippet Name">
                 </div>
-                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs" placeholder="Paste HTML/Jinja code here..."></textarea>
+                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none font-mono text-xs" placeholder="Paste HTML/Jinja here..."></textarea>
             </div>
         </div>
 
         <div class="flex flex-wrap gap-4 sticky bottom-6 z-50 bg-slate-900/80 backdrop-blur p-4 rounded-2xl border border-slate-800 shadow-2xl">
-            <button onclick="addSnippet()" id="addBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center gap-2 border border-slate-600">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-                <span>Add Snippet</span>
+            <button onclick="addSnippet()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all">
+                <span>+ Add Snippet</span>
             </button>
-            <button onclick="processAll()" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-12 rounded-xl shadow-lg transition-all active:scale-95 text-lg uppercase flex-1">
-                Process & Generate
+            <button onclick="processAll()" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-12 rounded-xl shadow-lg flex-1 text-lg uppercase">
+                Scan Links & Blocks
+            </button>
+        </div>
+
+        <div id="blockResolver" class="hidden space-y-4 bg-amber-900/10 border border-amber-500/30 p-6 rounded-2xl">
+            <h2 class="text-amber-400 font-bold uppercase text-sm tracking-widest">Jinja Blocks Detected</h2>
+            <div id="blockFields" class="grid md:grid-cols-2 gap-4"></div>
+            <button onclick="finalizeProcessing()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg">
+                Finalize & Merge
             </button>
         </div>
 
         <div id="resultsContainer" class="space-y-12"></div>
 
-        <div id="exportSection" class="hidden pb-24">
-            <div class="bg-emerald-900/20 border border-emerald-500/30 p-8 rounded-3xl text-center space-y-4">
-                <h3 class="text-emerald-400 font-bold text-xl">Processing Complete!</h3>
-                <p class="text-slate-400 text-sm">Download your consolidated report below.</p>
-                <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-16 rounded-2xl shadow-xl transition-all active:scale-95 flex items-center gap-3 mx-auto">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM10 16h4v-2h-4v2z"/></svg>
-                    <span>Download Excel Sheet</span>
-                </button>
-            </div>
+        <div id="exportSection" class="hidden pb-24 text-center">
+            <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-16 rounded-2xl shadow-xl transition-all active:scale-95">
+                Download Excel Sheet
+            </button>
         </div>
     </div>
 
     <script>
         let snippetCount = 1;
         let allExtractedData = [];
+        let detectedBlocks = new Set();
 
         function addSnippet() {
-            if (snippetCount >= 25) return;
             snippetCount++;
             const container = document.getElementById('inputContainer');
             const div = document.createElement('div');
             div.className = "snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4 relative mt-6";
             div.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-slate-500 hover:text-red-500">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
+                <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-slate-500 hover:text-red-500">×</button>
                 <div class="flex items-center gap-4">
-                    <span class="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded">${snippetCount.toString().padStart(2, '0')}</span>
-                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Snippet Name">
+                    <span class="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded">${snippetCount}</span>
+                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none">
                 </div>
-                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-mono text-xs"></textarea>
-            `;
+                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none font-mono text-xs"></textarea>`;
             container.appendChild(div);
+        }
+
+        // SMART EXTRACTOR: Logic that understands Jinja boundaries
+        function extractLinks(html, sourceName) {
+            // Find all occurrences of href= followed by a quote
+            const hrefRegex = /href=(["'])/gi;
+            let match;
+
+            while ((match = hrefRegex.exec(html)) !== null) {
+                const quoteType = match[1]; // " or '
+                const startIndex = match.index + match[0].length;
+                let endIndex = -1;
+                let inJinja = false;
+
+                // Loop through characters starting after the opening quote
+                for (let i = startIndex; i < html.length; i++) {
+                    const char = html[i];
+                    const nextChar = html[i+1];
+
+                    // Check if we are entering or leaving a Jinja expression
+                    if (char === '{' && nextChar === '{') inJinja = true;
+                    if (char === '}' && nextChar === '}') {
+                        inJinja = false;
+                        i++; // skip second bracket
+                        continue;
+                    }
+
+                    // If we find the matching quote and we ARE NOT inside Jinja, that's the end
+                    if (char === quoteType && !inJinja) {
+                        endIndex = i;
+                        break;
+                    }
+                    
+                    // Safety break if we hit a tag end while not in Jinja
+                    if (char === '>' && !inJinja) {
+                        endIndex = i;
+                        break;
+                    }
+                }
+
+                if (endIndex !== -1) {
+                    const url = html.substring(startIndex, endIndex).trim();
+                    allExtractedData.push({
+                        "Source": sourceName,
+                        "Extracted Link": url
+                    });
+                    // Move regex index forward
+                    hrefRegex.lastIndex = endIndex;
+                }
+            }
         }
 
         function processAll() {
             const groups = document.querySelectorAll('.snippet-group');
-            const resultsContainer = document.getElementById('resultsContainer');
-            resultsContainer.innerHTML = '';
-            allExtractedData = []; 
+            allExtractedData = [];
+            detectedBlocks.clear();
+            document.getElementById('blockFields').innerHTML = '';
+            document.getElementById('resultsContainer').innerHTML = '';
+            document.getElementById('exportSection').classList.add('hidden');
 
             groups.forEach((group, index) => {
                 const name = group.querySelector('.snippet-name').value || `Snippet ${index + 1}`;
                 const code = group.querySelector('.snippet-code').value;
                 if (!code.trim()) return;
 
-                // IMPROVED REGEX: Captures everything between matching quotes until a tag boundary is found.
-                // m[1] captures the quote type, m[2] captures the URL content.
-                const aRegex = /<a\s+[^>]*href=(["'])(.*?)\1(?=\s|>|$)/gi;
-                const allRegex = /href=(["'])(.*?)\1(?=\s|>|$)/gi;
-                const blockRegex = /{{block\(["'][^"']*["']\)}}/gi;
+                extractLinks(code, name);
 
-                const extract = (regex, type, isCapture = true) => {
-                    const matches = [];
-                    let match;
-                    regex.lastIndex = 0; // Reset index for each snippet
-                    
-                    while ((match = regex.exec(code)) !== null) {
-                        const val = (isCapture ? match[2] : match[0]).trim();
-                        matches.push(val);
-                        allExtractedData.push({ 
-                            "Snippet Name": name, 
-                            "Category": type, 
-                            "Extracted Value": val 
-                        });
-                    }
-                    return [...new Set(matches)]; // Return unique matches for visual display
-                };
-
-                const aLinks = extract(aRegex, "A_href");
-                const allHrefs = extract(allRegex, "Global Links");
-                const blocks = extract(blockRegex, "Blocks", false);
-
-                resultsContainer.innerHTML += `
-                    <div class="space-y-4 animate-in">
-                        <h2 class="text-xl font-bold text-white border-l-4 border-blue-500 pl-4">${name}</h2>
-                        <div class="grid lg:grid-cols-3 gap-4">
-                            ${renderColumn(aLinks, 'Anchor Links', 'text-blue-400')}
-                            ${renderColumn(allHrefs, 'All hrefs', 'text-emerald-400')}
-                            ${renderColumn(blocks, 'Jinja Blocks', 'text-purple-400')}
-                        </div>
-                    </div>`;
+                const bRegex = /{{block\(["']([^"']*)["']\)}}/gi;
+                let bMatch;
+                while ((bMatch = bRegex.exec(code)) !== null) {
+                    detectedBlocks.add(bMatch[1]);
+                }
             });
 
-            if (allExtractedData.length > 0) {
-                document.getElementById('exportSection').classList.remove('hidden');
-                document.getElementById('exportSection').scrollIntoView({ behavior: 'smooth' });
+            if (detectedBlocks.size > 0) {
+                document.getElementById('blockResolver').classList.remove('hidden');
+                detectedBlocks.forEach(id => {
+                    const div = document.createElement('div');
+                    div.innerHTML = `<label class="text-amber-500 text-[10px] font-bold">BLOCK ID: ${id}</label>
+                    <textarea data-id="${id}" class="block-input w-full h-24 p-3 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white"></textarea>`;
+                    document.getElementById('blockFields').appendChild(div);
+                });
+            } else if (allExtractedData.length > 0) {
+                renderResults();
             }
         }
 
-        function renderColumn(items, title, colorClass) {
-            return `
-                <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50">
-                    <h3 class="${colorClass} text-[10px] font-black uppercase mb-3 flex justify-between">${title} <span>${items.length}</h3></span>
-                    <ul class="space-y-2 max-h-48 overflow-y-auto pr-1 text-[10px]">
-                        ${items.length ? items.map(i => `<li class="bg-slate-900/50 p-2 rounded truncate border border-slate-700/50 font-mono text-slate-400" title="${i}">${i}</li>`).join('') : '<li class="text-slate-600 italic">No matches</li>'}
+        function finalizeProcessing() {
+            const inputs = document.querySelectorAll('.block-input');
+            inputs.forEach(input => {
+                const id = input.getAttribute('data-id');
+                const html = input.value;
+                if (html.trim()) extractLinks(html, `Block: ${id}`);
+            });
+            document.getElementById('blockResolver').classList.add('hidden');
+            renderResults();
+        }
+
+        function renderResults() {
+            const container = document.getElementById('resultsContainer');
+            const sources = [...new Set(allExtractedData.map(d => d.Source))];
+
+            sources.forEach(src => {
+                const links = allExtractedData.filter(d => d.Source === src);
+                container.innerHTML += `<div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700">
+                    <h2 class="text-blue-400 font-bold mb-4 border-l-4 border-blue-500 pl-3">${src}</h2>
+                    <ul class="space-y-2 text-[10px] font-mono text-slate-400">
+                        ${links.map(l => `<li class="bg-slate-900 p-2 rounded break-all border border-slate-800">${l["Extracted Link"]}</li>`).join('')}
                     </ul>
                 </div>`;
+            });
+            document.getElementById('exportSection').classList.remove('hidden');
         }
 
         function downloadExcel() {
-            if (typeof XLSX === 'undefined') {
-                alert("Excel library is still loading...");
-                return;
-            }
-            if (allExtractedData.length === 0) return;
-
-            const worksheet = XLSX.utils.json_to_sheet(allExtractedData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Extraction Report");
-            
-            worksheet["!cols"] = [{ wch: 30 }, { wch: 25 }, { wch: 100 }];
-
-            XLSX.writeFile(workbook, `Link_Extraction_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`);
+            const ws = XLSX.utils.json_to_sheet(allExtractedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Links");
+            ws["!cols"] = [{ wch: 30 }, { wch: 150 }];
+            XLSX.writeFile(wb, "Extraction_Report.xlsx");
         }
     </script>
-    <style>
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .animate-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
 </body>
 </html>

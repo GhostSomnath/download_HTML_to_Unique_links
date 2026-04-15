@@ -11,7 +11,7 @@
     <div class="max-w-7xl mx-auto space-y-8">
         <header>
             <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master <span class="text-blue-500">Exporter</span></h1>
-            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Fixed Excel Engine | Extract and download as .xlsx</p>
+            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Fixed Excel Engine | Handles Complex Jinja Links</p>
         </header>
 
         <div id="inputContainer" class="space-y-6">
@@ -82,17 +82,27 @@
                 const code = group.querySelector('.snippet-code').value;
                 if (!code.trim()) return;
 
-                // Captures standard URLs, UTMs, and Jinja {{ tags }}
-                const aRegex = /<a\s+[^>]*href=["']([^"']*)["']/gi;
-                const allRegex = /href=["']([^"']*)["']/gi;
+                // IMPROVED REGEX: Captures everything between matching quotes until a tag boundary is found.
+                // m[1] captures the quote type, m[2] captures the URL content.
+                const aRegex = /<a\s+[^>]*href=(["'])(.*?)\1(?=\s|>|$)/gi;
+                const allRegex = /href=(["'])(.*?)\1(?=\s|>|$)/gi;
                 const blockRegex = /{{block\(["'][^"']*["']\)}}/gi;
 
                 const extract = (regex, type, isCapture = true) => {
-                    const matches = [...new Set(Array.from(code.matchAll(regex), m => (isCapture ? m[1] : m[0]).trim()))];
-                    matches.forEach(m => {
-                        allExtractedData.push({ "Snippet Name": name, "Category": type, "Extracted Value": m });
-                    });
-                    return matches;
+                    const matches = [];
+                    let match;
+                    regex.lastIndex = 0; // Reset index for each snippet
+                    
+                    while ((match = regex.exec(code)) !== null) {
+                        const val = (isCapture ? match[2] : match[0]).trim();
+                        matches.push(val);
+                        allExtractedData.push({ 
+                            "Snippet Name": name, 
+                            "Category": type, 
+                            "Extracted Value": val 
+                        });
+                    }
+                    return [...new Set(matches)]; // Return unique matches for visual display
                 };
 
                 const aLinks = extract(aRegex, "A_href");
@@ -100,7 +110,7 @@
                 const blocks = extract(blockRegex, "Blocks", false);
 
                 resultsContainer.innerHTML += `
-                    <div class="space-y-4 animate-in fade-in duration-500">
+                    <div class="space-y-4 animate-in">
                         <h2 class="text-xl font-bold text-white border-l-4 border-blue-500 pl-4">${name}</h2>
                         <div class="grid lg:grid-cols-3 gap-4">
                             ${renderColumn(aLinks, 'Anchor Links', 'text-blue-400')}
@@ -119,16 +129,16 @@
         function renderColumn(items, title, colorClass) {
             return `
                 <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/50">
-                    <h3 class="${colorClass} text-[10px] font-black uppercase mb-3 flex justify-between">${title} <span>${items.length}</span></h3>
+                    <h3 class="${colorClass} text-[10px] font-black uppercase mb-3 flex justify-between">${title} <span>${items.length}</h3></span>
                     <ul class="space-y-2 max-h-48 overflow-y-auto pr-1 text-[10px]">
-                        ${items.length ? items.map(i => `<li class="bg-slate-900/50 p-2 rounded truncate border border-slate-700/50 font-mono text-slate-400">${i}</li>`).join('') : '<li class="text-slate-600 italic">No matches</li>'}
+                        ${items.length ? items.map(i => `<li class="bg-slate-900/50 p-2 rounded truncate border border-slate-700/50 font-mono text-slate-400" title="${i}">${i}</li>`).join('') : '<li class="text-slate-600 italic">No matches</li>'}
                     </ul>
                 </div>`;
         }
 
         function downloadExcel() {
             if (typeof XLSX === 'undefined') {
-                alert("Excel library is still loading or blocked by your browser. Please check your internet connection.");
+                alert("Excel library is still loading...");
                 return;
             }
             if (allExtractedData.length === 0) return;
@@ -137,8 +147,7 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Extraction Report");
             
-            // Format column widths
-            worksheet["!cols"] = [{ wch: 30 }, { wch: 25 }, { wch: 80 }];
+            worksheet["!cols"] = [{ wch: 30 }, { wch: 25 }, { wch: 100 }];
 
             XLSX.writeFile(workbook, `Link_Extraction_Report_${new Date().toLocaleDateString().replace(/\//g, '-')}.xlsx`);
         }

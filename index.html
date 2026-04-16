@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,28 +8,38 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <title>Pro Snippet Extractor & Exporter</title>
 </head>
+
 <body class="bg-slate-900 text-slate-200 p-4 md:p-10 min-h-screen font-sans">
     <div class="max-w-7xl mx-auto space-y-8">
         <header>
-            <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master <span class="text-blue-500">Exporter</span></h1>
-            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Advanced Parser | Jinja Space & Quote Protection</p>
+            <h1 class="text-3xl font-black text-white tracking-tight uppercase">Master <span
+                    class="text-blue-500">Exporter</span></h1>
+            <p class="text-slate-400 text-sm mt-1 uppercase tracking-widest">Advanced Parser | Jinja Space & Quote
+                Protection</p>
         </header>
 
         <div id="inputContainer" class="space-y-6">
             <div class="snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4">
                 <div class="flex items-center gap-4">
                     <span class="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">01</span>
-                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="Snippet Name">
+                    <input type="text"
+                        class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Snippet Name">
                 </div>
-                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none font-mono text-xs" placeholder="Paste HTML/Jinja here..."></textarea>
+                <textarea
+                    class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none font-mono text-xs"
+                    placeholder="Paste HTML/Jinja here..."></textarea>
             </div>
         </div>
 
-        <div class="flex flex-wrap gap-4 sticky bottom-6 z-50 bg-slate-900/80 backdrop-blur p-4 rounded-2xl border border-slate-800 shadow-2xl">
-            <button onclick="addSnippet()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all">
+        <div
+            class="flex flex-wrap gap-4 sticky bottom-6 z-50 bg-slate-900/80 backdrop-blur p-4 rounded-2xl border border-slate-800 shadow-2xl">
+            <button onclick="addSnippet()"
+                class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl transition-all">
                 <span>+ Add Snippet</span>
             </button>
-            <button onclick="processAll()" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-12 rounded-xl shadow-lg flex-1 text-lg uppercase">
+            <button onclick="processAll()"
+                class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-12 rounded-xl shadow-lg flex-1 text-lg uppercase">
                 Scan Links & Blocks
             </button>
         </div>
@@ -36,7 +47,8 @@
         <div id="blockResolver" class="hidden space-y-4 bg-amber-900/10 border border-amber-500/30 p-6 rounded-2xl">
             <h2 class="text-amber-400 font-bold uppercase text-sm tracking-widest">Jinja Blocks Detected</h2>
             <div id="blockFields" class="grid md:grid-cols-2 gap-4"></div>
-            <button onclick="finalizeProcessing()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg">
+            <button onclick="finalizeProcessing()"
+                class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg">
                 Finalize & Merge
             </button>
         </div>
@@ -44,151 +56,154 @@
         <div id="resultsContainer" class="space-y-12"></div>
 
         <div id="exportSection" class="hidden pb-24 text-center">
-            <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-16 rounded-2xl shadow-xl transition-all active:scale-95">
+            <button onclick="downloadExcel()"
+                class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-16 rounded-2xl shadow-xl transition-all active:scale-95">
                 Download Excel Sheet
             </button>
         </div>
     </div>
 
     <script>
-        let snippetCount = 1;
-        let allExtractedData = [];
-        let detectedBlocks = new Set();
+    let snippetCount = 1;
+    let allExtractedData = [];
+    let detectedBlocks = []; // Track objects with snippetName and blockId
 
-        function addSnippet() {
-            snippetCount++;
-            const container = document.getElementById('inputContainer');
-            const div = document.createElement('div');
-            div.className = "snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4 relative mt-6";
-            div.innerHTML = `
-                <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-slate-500 hover:text-red-500">×</button>
-                <div class="flex items-center gap-4">
-                    <span class="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded">${snippetCount}</span>
-                    <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none">
-                </div>
-                <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none font-mono text-xs"></textarea>`;
-            container.appendChild(div);
-        }
+    function addSnippet() {
+        snippetCount++;
+        const container = document.getElementById('inputContainer');
+        const div = document.createElement('div');
+        div.className = "snippet-group bg-slate-800/40 p-5 rounded-2xl border border-slate-700 space-y-4 relative mt-6";
+        div.innerHTML = `
+            <button onclick="this.parentElement.remove()" class="absolute top-4 right-4 text-slate-500 hover:text-red-500">×</button>
+            <div class="flex items-center gap-4">
+                <span class="bg-slate-700 text-white text-[10px] font-bold px-2 py-1 rounded">${snippetCount}</span>
+                <input type="text" class="snippet-name flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none">
+            </div>
+            <textarea class="snippet-code w-full h-32 p-4 bg-slate-900 border border-slate-700 rounded-xl outline-none font-mono text-xs"></textarea>`;
+        container.appendChild(div);
+    }
 
-        // SMART EXTRACTOR: Logic that understands Jinja boundaries
-        function extractLinks(html, sourceName) {
-            // Find all occurrences of href= followed by a quote
-            const hrefRegex = /href=(["'])/gi;
-            let match;
+    function extractLinks(html, snippetName, blockId = "N/A") {
+        const hrefRegex = /href=(["'])/gi;
+        let match;
 
-            while ((match = hrefRegex.exec(html)) !== null) {
-                const quoteType = match[1]; // " or '
-                const startIndex = match.index + match[0].length;
-                let endIndex = -1;
-                let inJinja = false;
+        while ((match = hrefRegex.exec(html)) !== null) {
+            const quoteType = match[1];
+            const startIndex = match.index + match[0].length;
+            let endIndex = -1;
+            let inJinja = false;
 
-                // Loop through characters starting after the opening quote
-                for (let i = startIndex; i < html.length; i++) {
-                    const char = html[i];
-                    const nextChar = html[i+1];
+            for (let i = startIndex; i < html.length; i++) {
+                const char = html[i];
+                const nextChar = html[i + 1];
 
-                    // Check if we are entering or leaving a Jinja expression
-                    if (char === '{' && nextChar === '{') inJinja = true;
-                    if (char === '}' && nextChar === '}') {
-                        inJinja = false;
-                        i++; // skip second bracket
-                        continue;
-                    }
-
-                    // If we find the matching quote and we ARE NOT inside Jinja, that's the end
-                    if (char === quoteType && !inJinja) {
-                        endIndex = i;
-                        break;
-                    }
-                    
-                    // Safety break if we hit a tag end while not in Jinja
-                    if (char === '>' && !inJinja) {
-                        endIndex = i;
-                        break;
-                    }
+                if (char === '{' && nextChar === '{') inJinja = true;
+                if (char === '}' && nextChar === '}') {
+                    inJinja = false;
+                    i++;
+                    continue;
                 }
 
-                if (endIndex !== -1) {
-                    const url = html.substring(startIndex, endIndex).trim();
-                    allExtractedData.push({
-                        "Source": sourceName,
-                        "Extracted Link": url
-                    });
-                    // Move regex index forward
-                    hrefRegex.lastIndex = endIndex;
+                if (char === quoteType && !inJinja) {
+                    endIndex = i;
+                    break;
+                }
+                if (char === '>' && !inJinja) {
+                    endIndex = i;
+                    break;
                 }
             }
-        }
 
-        function processAll() {
-            const groups = document.querySelectorAll('.snippet-group');
-            allExtractedData = [];
-            detectedBlocks.clear();
-            document.getElementById('blockFields').innerHTML = '';
-            document.getElementById('resultsContainer').innerHTML = '';
-            document.getElementById('exportSection').classList.add('hidden');
-
-            groups.forEach((group, index) => {
-                const name = group.querySelector('.snippet-name').value || `Snippet ${index + 1}`;
-                const code = group.querySelector('.snippet-code').value;
-                if (!code.trim()) return;
-
-                extractLinks(code, name);
-
-                const bRegex = /{{block\(["']([^"']*)["']\)}}/gi;
-                let bMatch;
-                while ((bMatch = bRegex.exec(code)) !== null) {
-                    detectedBlocks.add(bMatch[1]);
-                }
-            });
-
-            if (detectedBlocks.size > 0) {
-                document.getElementById('blockResolver').classList.remove('hidden');
-                detectedBlocks.forEach(id => {
-                    const div = document.createElement('div');
-                    div.innerHTML = `<label class="text-amber-500 text-[10px] font-bold">BLOCK ID: ${id}</label>
-                    <textarea data-id="${id}" class="block-input w-full h-24 p-3 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white"></textarea>`;
-                    document.getElementById('blockFields').appendChild(div);
+            if (endIndex !== -1) {
+                const url = html.substring(startIndex, endIndex).trim();
+                allExtractedData.push({
+                    "Snippet Name": snippetName,
+                    "Block ID": blockId,
+                    "Extracted Link": url
                 });
-            } else if (allExtractedData.length > 0) {
-                renderResults();
+                hrefRegex.lastIndex = endIndex;
             }
         }
+    }
 
-        function finalizeProcessing() {
-            const inputs = document.querySelectorAll('.block-input');
-            inputs.forEach(input => {
-                const id = input.getAttribute('data-id');
-                const html = input.value;
-                if (html.trim()) extractLinks(html, `Block: ${id}`);
+    function processAll() {
+        const groups = document.querySelectorAll('.snippet-group');
+        allExtractedData = [];
+        detectedBlocks = [];
+        document.getElementById('blockFields').innerHTML = '';
+        document.getElementById('resultsContainer').innerHTML = '';
+        document.getElementById('exportSection').classList.add('hidden');
+
+        groups.forEach((group, index) => {
+            const name = group.querySelector('.snippet-name').value || `Snippet ${index + 1}`;
+            const code = group.querySelector('.snippet-code').value;
+            if (!code.trim()) return;
+
+            extractLinks(code, name);
+
+            // Flexible regex for multi-line/complex block calls
+            const bRegex = /{{\s*block\s*\(\s*["']([^"']*)["']/gi;
+            let bMatch;
+            while ((bMatch = bRegex.exec(code)) !== null) {
+                detectedBlocks.push({ snippetName: name, blockId: bMatch[1] });
+            }
+        });
+
+        if (detectedBlocks.length > 0) {
+            document.getElementById('blockResolver').classList.remove('hidden');
+            detectedBlocks.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.innerHTML = `<label class="text-amber-500 text-[10px] font-bold">SNIPPET: ${item.snippetName} | BLOCK ID: ${item.blockId}</label>
+                <textarea data-snippet="${item.snippetName}" data-id="${item.blockId}" class="block-input w-full h-24 p-3 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono text-white"></textarea>`;
+                document.getElementById('blockFields').appendChild(div);
             });
-            document.getElementById('blockResolver').classList.add('hidden');
+        } else if (allExtractedData.length > 0) {
             renderResults();
         }
+    }
 
-        function renderResults() {
-            const container = document.getElementById('resultsContainer');
-            const sources = [...new Set(allExtractedData.map(d => d.Source))];
+    function finalizeProcessing() {
+        const inputs = document.querySelectorAll('.block-input');
+        inputs.forEach(input => {
+            const snipName = input.getAttribute('data-snippet');
+            const bId = input.getAttribute('data-id');
+            const html = input.value;
+            if (html.trim()) extractLinks(html, snipName, bId);
+        });
+        document.getElementById('blockResolver').classList.add('hidden');
+        renderResults();
+    }
 
-            sources.forEach(src => {
-                const links = allExtractedData.filter(d => d.Source === src);
-                container.innerHTML += `<div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700">
-                    <h2 class="text-blue-400 font-bold mb-4 border-l-4 border-blue-500 pl-3">${src}</h2>
-                    <ul class="space-y-2 text-[10px] font-mono text-slate-400">
-                        ${links.map(l => `<li class="bg-slate-900 p-2 rounded break-all border border-slate-800">${l["Extracted Link"]}</li>`).join('')}
-                    </ul>
-                </div>`;
-            });
-            document.getElementById('exportSection').classList.remove('hidden');
-        }
+    function renderResults() {
+        const container = document.getElementById('resultsContainer');
+        const snippets = [...new Set(allExtractedData.map(d => d["Snippet Name"]))];
 
-        function downloadExcel() {
-            const ws = XLSX.utils.json_to_sheet(allExtractedData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Links");
-            ws["!cols"] = [{ wch: 30 }, { wch: 150 }];
-            XLSX.writeFile(wb, "Extraction_Report.xlsx");
-        }
-    </script>
+        snippets.forEach(snip => {
+            const links = allExtractedData.filter(d => d["Snippet Name"] === snip);
+            container.innerHTML += `<div class="bg-slate-800/60 p-5 rounded-2xl border border-slate-700">
+                <h2 class="text-blue-400 font-bold mb-4 border-l-4 border-blue-500 pl-3">${snip}</h2>
+                <ul class="space-y-2 text-[10px] font-mono text-slate-400">
+                    ${links.map(l => `
+                        <li class="bg-slate-900 p-2 rounded break-all border border-slate-800">
+                            <span class="text-amber-600 font-bold mr-2">[${l["Block ID"]}]</span>${l["Extracted Link"]}
+                        </li>`).join('')}
+                </ul>
+            </div>`;
+        });
+        document.getElementById('exportSection').classList.remove('hidden');
+    }
+
+    function downloadExcel() {
+        const ws = XLSX.utils.json_to_sheet(allExtractedData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Extraction_Report");
+        
+        // Auto-size columns for better readability
+        ws["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 120 }];
+        
+        XLSX.writeFile(wb, "Extraction_Report.xlsx");
+    }
+</script>
 </body>
+
 </html>

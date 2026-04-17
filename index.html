@@ -56,16 +56,26 @@
         <div id="resultsContainer" class="space-y-12"></div>
 
         <div id="exportSection" class="hidden pb-24 text-center space-y-4">
-    <div class="flex max-w-sm mx-auto gap-2">
-        <input type="text" id="fileNameInput" 
-               class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500" 
-               placeholder="Enter file name (optional)">
-        <span class="flex items-center text-slate-500 text-sm">.xlsx</span>
+    <div class="flex flex-col max-w-sm mx-auto gap-3">
+        <div class="flex gap-2">
+            <input type="text" id="fileNameInput" 
+                   class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500" 
+                   placeholder="File name (e.g. MyProject)">
+            <span class="flex items-center text-slate-500 text-sm">.xlsx</span>
+        </div>
+
+        <div class="flex">
+            <input type="text" id="sheetNameInput" 
+                   class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500" 
+                   placeholder="Sheet name (e.g. Data_v1)">
+        </div>
     </div>
+
     <button onclick="downloadExcel()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 px-16 rounded-2xl shadow-xl transition-all active:scale-95">
         Download Excel Sheet
     </button>
 </div>
+
     </div>
 
     <script>
@@ -199,17 +209,25 @@
     }
 
     function downloadExcel() {
+    // 1. Get values from inputs
+    const customFileName = document.getElementById('fileNameInput').value.trim();
+    const customSheetName = document.getElementById('sheetNameInput').value.trim();
+
+    // 2. Set defaults if inputs are empty
+    const finalFileName = customFileName ? `${customFileName}.xlsx` : "Extraction_Report.xlsx";
+    const finalSheetName = customSheetName ? customSheetName : "Extraction_Report";
+
+    // 3. Create Workbook and Sheet
     const ws = XLSX.utils.json_to_sheet(allExtractedData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Extraction_Report");
+
+    // 4. Use the dynamic sheet name here!
+    XLSX.utils.book_append_sheet(wb, ws, finalSheetName);
     
     // Auto-size columns
     ws["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 120 }];
     
-    // Get custom filename or use default
-    const customName = document.getElementById('fileNameInput').value.trim();
-    const finalFileName = customName ? `${customName}.xlsx` : "Extraction_Report.xlsx";
-    
+    // 5. Generate file
     XLSX.writeFile(wb, finalFileName);
 }
 </script>
